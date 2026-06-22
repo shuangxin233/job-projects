@@ -1,54 +1,55 @@
-# Deep Researcher On Dify
+# Dify行业研究与竞品分析系统
 
-This project reproduces a Deep Research style workflow on Dify and extends it
-into an interview-ready research-report generation system.
+## 项目定位
 
-## Positioning
+这是一个面向行业研究、竞品分析和主题调研的报告生成系统。项目使用 Dify 负责多步骤工作流编排，同时补充 FastAPI 后端，用于任务提交、本地知识库检索、证据清洗、报告保存、导出和评估。
 
-The system is designed for:
+项目重点展示从“用户提出研究主题”到“生成结构化 Markdown 报告”的完整流程。
 
-- industry research
-- competitive analysis
-- topic investigation
-- structured Markdown report generation
-
-Dify is responsible for workflow orchestration. The added FastAPI backend is
-responsible for task submission, local knowledge-base retrieval, evidence
-cleaning, report persistence, export, and evaluation.
-
-## Core Workflow
+## 核心流程
 
 ```text
-User topic
--> clarification / constraints
--> research plan
--> local knowledge-base retrieval
--> fallback external evidence collection
--> evidence cleaning and deduplication
--> information gap check
--> section-by-section report generation
--> citation and quality review
--> Markdown export
+用户输入研究主题
+-> 明确研究目标和约束
+-> 生成研究计划
+-> 优先检索本地知识库
+-> 本地证据不足时补充外部资料
+-> 清洗、去重并编号证据
+-> 检查信息缺口
+-> 按章节生成研究报告
+-> 检查引用和结构完整性
+-> 导出 Markdown 报告
 ```
 
-## Main Files
+## 技术栈
 
-- `Deep Researcher On Dify .yml`: Dify workflow DSL.
-- `Deep Researcher On Dify - Powered by Dify.pdf`: original run example.
-- `backend/`: FastAPI productization layer.
-- `evaluation/`: report evaluation scripts and fixed test topics.
-- `DIFY_WORKFLOW_UPGRADE_CHECKLIST.md`: changes to apply inside Dify.
-- `UPGRADE_NOTES.md`: summary of implemented improvements.
+- Dify Workflow
+- FastAPI
+- Pydantic
+- 本地 JSON 向量库
+- 可选 ChromaDB
+- Markdown 报告生成
+- 规则化报告评估脚本
 
-## Backend Demo
+## 主要文件
 
-```bash
-cd backend
+- `Deep Researcher On Dify .yml`：Dify 工作流配置文件
+- `backend/`：FastAPI 后端
+- `evaluation/`：报告质量评估脚本和测试主题
+- `DIFY_WORKFLOW_UPGRADE_CHECKLIST.md`：Dify 工作流配置检查表
+- `UPGRADE_NOTES.md`：项目改进记录
+
+## 后端启动
+
+```powershell
+cd 求职项目\Dify行业研究与竞品分析系统\backend
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8010
 ```
 
-Optional `.env`:
+可选 `.env`：
 
 ```env
 DIFY_API_KEY=app-xxx
@@ -56,50 +57,50 @@ DIFY_WORKFLOW_URL=http://127.0.0.1/v1/workflows/run
 DIFY_TIMEOUT_SECONDS=180
 ```
 
-If Dify is not configured, the backend still returns a local draft report using
-the same evidence and quality-control pipeline.
+如果没有配置 Dify，后端仍会使用本地证据和报告质量控制流程生成草稿，方便演示主流程。
 
-### Local Knowledge Base RAG
+## 本地知识库 RAG
 
-The backend supports a local-knowledge-first RAG path:
+后端支持本地知识库优先检索：
 
 ```text
-upload local file / add text
--> extract text
--> split into chunks
--> create embeddings
--> store vectors in JSON or ChromaDB
--> retrieve Top-K similar chunks
--> use local chunks as report evidence
--> if local evidence is insufficient, add request sources as fallback evidence
+上传本地文件 / 添加文本
+-> 抽取文本
+-> 切分为 chunk
+-> 生成 embedding
+-> 存入 JSON 向量库或 ChromaDB
+-> 检索 Top-K 相似 chunk
+-> 作为报告证据
+-> 证据不足时再补充外部资料
 ```
 
-Default storage is a lightweight local JSON vector store. Set
-`VECTOR_STORE_BACKEND=chroma` to use ChromaDB persistence.
+默认使用轻量 JSON 向量库。需要 ChromaDB 时可设置：
 
-## Evaluation
+```env
+VECTOR_STORE_BACKEND=chroma
+```
 
-```bash
+## 评估脚本
+
+```powershell
 python evaluation/evaluate_reports.py
 ```
 
-The evaluator checks:
+评估内容包括：
 
-- required section coverage
-- citation marker count
-- pass/fail status per generated report
+- 报告必需章节是否完整
+- 引用标记数量是否足够
+- 每个测试主题是否通过质量检查
 
-## Interview Highlights
+## 面试讲解重点
 
-- Dify Workflow orchestration for multi-step AI applications.
-- Agent-style research planning and information gap checking.
-- Local file/text knowledge base with chunking, embeddings, vector storage, and Top-K retrieval.
-- Local-knowledge-first RAG with fallback external/request sources when evidence is insufficient.
-- Search result cleaning, deduplication, and evidence register construction.
-- Citation-aware report generation with `[S1]`, `[S2]` evidence markers.
-- FastAPI wrapper for task management and Markdown export.
-- Evaluation workflow for report completeness and citation behavior.
+- 使用 Dify 编排多步骤 AI 工作流。
+- 后端把工作流能力产品化，提供任务提交、报告保存和导出。
+- 本地知识库优先，减少直接依赖联网搜索。
+- 支持 chunking、embedding、向量存储和 Top-K 检索。
+- 生成报告前会做证据清洗、去重和信息缺口检查。
+- 评估脚本可以量化报告结构和引用质量。
 
-## License
+## 许可证
 
-LGPL-3.0, following the original workflow project.
+项目包含开源组件和个人扩展代码，使用时请遵守仓库中保留的许可证文件。

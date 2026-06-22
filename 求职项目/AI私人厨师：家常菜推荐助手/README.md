@@ -2,16 +2,33 @@
 
 ## 项目定位
 
-基于 Next.js + FastAPI + Ollama 的家常菜推荐助手。用户输入食材或做饭需求后，前端以聊天方式调用后端接口，后端优先使用本地 Ollama 模型流式返回菜谱建议；如果 Ollama 不可用，则使用规则菜谱兜底，保证演示稳定。
+这是一个基于 FastAPI + Next.js 的家常菜推荐助手。用户可以输入已有食材、口味偏好或做饭需求，系统通过后端推荐逻辑生成菜谱建议，并在前端以聊天式界面展示结果。
 
-## 跨设备运行结论
+项目适合作为求职展示中的完整 Web 应用案例：包含前后端分离、接口设计、流式回复、可选本地大模型调用和兜底推荐逻辑。
 
-可以在其他设备运行，但需要安装 Python 和 Node.js。Ollama 是可选依赖：不安装或未启动时，项目仍会返回规则兜底菜谱。
+## 核心流程
+
+```text
+用户输入做饭需求
+-> 前端发送请求到 FastAPI
+-> 后端解析食材、口味和场景
+-> 优先调用本地 Ollama 模型生成建议
+-> 如果模型不可用，使用规则推荐兜底
+-> 返回菜名、食材、步骤和提示
+-> 前端展示为聊天记录和菜谱卡片
+```
+
+## 技术栈
+
+- 后端：Python、FastAPI、Pydantic
+- 前端：Next.js、React、TypeScript
+- 模型：Ollama 本地模型，可选
+- 其他：REST API、聊天记录管理、规则兜底推荐
 
 ## 后端启动
 
 ```powershell
-cd AI私人厨师：家常菜推荐助手
+cd 求职项目\AI私人厨师：家常菜推荐助手
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
@@ -33,7 +50,7 @@ http://127.0.0.1:8001/docs
 ## 前端启动
 
 ```powershell
-cd AI私人厨师：家常菜推荐助手\frontend
+cd 求职项目\AI私人厨师：家常菜推荐助手\frontend
 npm install
 npm run dev
 ```
@@ -52,6 +69,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
 
 ## Ollama 可选配置
 
+不安装 Ollama 时，项目仍可通过规则兜底返回菜谱建议。需要本地大模型效果时可执行：
+
 ```powershell
 ollama pull qwen2.5:3b
 ```
@@ -62,7 +81,9 @@ ollama pull qwen2.5:3b
 http://localhost:11434/api/chat
 ```
 
-## GitHub 上传说明
+## 面试讲解重点
 
-已排除 `OllamaSetup.exe`、`.next`、`node_modules`、聊天历史和 `.env`。新设备运行时重新安装依赖即可。
-
+- 前后端分离：Next.js 负责交互，FastAPI 负责业务逻辑。
+- 模型可用性处理：Ollama 不可用时，系统仍能稳定返回结果。
+- 接口清晰：推荐、聊天和文件相关能力拆分到不同模块。
+- 可扩展：后续可接入用户画像、历史偏好、营养分析和食材库存管理。

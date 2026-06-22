@@ -1,93 +1,55 @@
-# 🤖 RAG PDFBot - Server
+# 企业知识库智能问答系统 - 后端
 
-This is the FastAPI backend for the RAG PDFBot. It handles PDF processing, vectorstore embedding, LLM chain execution, and API endpoints.
+## 模块定位
 
----
+`server` 是项目的 FastAPI 后端，负责文档上传、文本解析、chunk 切割、向量库构建、相似度检索和大模型问答。
 
-## Features
+## 核心职责
 
-- ✅ Upload and process PDFs
-- 🧠 Chat with LLM using vectorstore retrieval
-- 🔍 Inspect document chunks via similarity search
-- 🌐 Supports multiple providers (Groq, Gemini)
+- 接收并校验 PDF 文件
+- 解析文档文本
+- 使用 `TokenTextSplitter` 进行文本切割
+- 调用 Embedding 模型生成向量
+- 将向量写入 ChromaDB
+- 根据用户问题召回 Top-K 文档片段
+- 组织上下文并调用 Groq / Gemini
+- 提供健康检查、模型列表、向量库检查等 API
 
----
+## 安装
 
-## Project Structure
-
-```
-server/
-├── api/                        # FastAPI routes and schemas
-├── config/                     # Environment and constants
-├── core/                       # LLM logic, vectorstore, processing
-├── utils/                      # Logger and helpers
-├── main.py                     # App entry point
-```
-
----
-
-## 📦 Installation
-
-1. **Clone the repo**
-
-```bash
-git clone https://github.com/Zlash65/rag-bot-fastapi.git
-cd rag-bot-fastapi
+```powershell
+cd 求职项目\企业知识库智能问答系统\server
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-2. **Create a virtual environment (optional)**
+## 配置
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
+创建 `.env`：
+
+```env
+GROQ_API_KEY=your-groq-key
+GOOGLE_API_KEY=your-google-key
 ```
 
-3. **Install dependencies**
+## 启动
 
-```bash
-cd server
-
-pip3 install -r requirements.txt
-```
-
----
-
-## Configuration
-
-Set your API keys in `config/settings.py`:
-
-- **Groq**: [console.groq.com](https://console.groq.com/)
-- **Gemini**: [ai.google.dev](https://ai.google.dev)
-
-```python
-GROQ_API_KEY = "your_groq_key"
-GOOGLE_API_KEY = "your_google_key"
-```
-
----
-
-## ▶️ Usage
-
-Run the app:
-
-```bash
-cd rag-bot-fastapi/server
-
+```powershell
 uvicorn main:app --reload
 ```
 
----
+默认地址：
 
-## API Endpoints
+```text
+http://127.0.0.1:8000
+```
 
-- `/upload_and_process_pdfs`
-- `/chat`
-- `/vector_store/count/{provider}`
-- `/vector_store/search`
-- `/llm`
-- `/llm/{provider}`
-- `/health`
+## 主要接口
 
-## Logging
-
-Logs are printed to the console and controlled via `utils/logger.py`.
+- `POST /upload_and_process_pdfs`：上传并处理 PDF
+- `POST /chat`：基于知识库回答问题
+- `GET /vector_store/count/{provider}`：查看向量库数量
+- `POST /vector_store/search`：直接检索向量库
+- `GET /llm`：查看可用模型
+- `GET /health`：健康检查

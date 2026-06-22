@@ -1,254 +1,108 @@
-# 👽 RAG PDFBot - V3 (FastAPI + Streamlit)
+# 企业知识库智能问答系统
 
-This is the **production-ready refactor** of [rag-bot-chroma](https://github.com/Zlash65/rag-bot-chroma), introducing a real separation between frontend (UI) and backend (logic) using **Streamlit** and **FastAPI** respectively. This modular architecture helps in scaling, extending, and deploying the bot in real-world environments.
+## 项目定位
 
----
+这是一个面向企业文档问答场景的 RAG 系统。用户上传 PDF 文档后，系统完成文本解析、切割、向量化、ChromaDB 存储、Top-K 检索和大模型问答，前端提供聊天、文件上传、检索检查和历史导出能力。
 
-<details>
-  <summary> 🔗 Helpful Links </summary>
+项目重点展示完整 RAG 流程和前后端分离架构，而不是单纯调用大模型回答问题。
 
-- 🧑‍💻 [Version 1 - Basic RAG PDFBot (FAISS)](https://github.com/Zlash65/rag-bot-basic)
-- ✍️ [V1 Blog Walkthrough](https://dev.to/zlash65/building-a-rag-powered-pdf-chatbot-with-langchain-streamlit-and-faiss-9i9)
+## 核心流程
 
-- 🧑‍💻 [Version 2 - Modular Streamlit + Chroma](https://github.com/Zlash65/rag-bot-chroma)
-- ✍️ [V2 Blog Walkthrough](https://dev.to/zlash65/refactoring-rag-pdfbot-modular-design-with-langchain-streamlit-and-chromadb-41fn)
-
-- 🧑‍💻 [Version 3 - Streamlit + FastAPI](https://github.com/Zlash65/rag-bot-fastapi)
-- ✍️ [V3 Blog Walkthrough](https://dev.to/zlash65/rag-pdfbot-v3-from-prototype-to-production-ready-ish-58h7)
-
-</details>
-
----
-
-## 🔄 What Changed from `rag-bot-chroma`
-
-| Feature | Version 2 | Version 3 |
-|--------|-------------|--------------|
-| Codebase | One Streamlit app | Split into `client/` + `server/` |
-| PDF Upload | In Streamlit | Async FastAPI API |
-| Chat | In Streamlit | Calls `/chat` API |
-| Vectorstore | In UI | Controlled by backend |
-| Model Options | Static | Dynamically fetched |
-| Inspector | In sidebar | Main panel toggle |
-| Splitting | `RecursiveTextSplitter` | `TokenTextSplitter` |
-| UX | Crude | Responsive, clear, downloadable |
-| Extendability | Hard | Easy to plug new LLMs, tools |
-
----
-
-## 🧪 How It Looks
-
-### Demo
-![demo-gif](/assets/rag-bot-fastapi.gif)
-
----
-
-## 🏗️ Architecture
-
-![architecture](/assets/rag-bot-fastapi-architecture.png)
-
----
-
-## 🚀 Features
-
-- 📁 Upload multiple PDFs and chat with them
-- 🔌 Choose from Groq or Gemini as LLM providers
-- 🔎 Query inspector for vectorstore transparency
-- 🧠 RAG with LangChain + ChromaDB
-- 📦 Streamlit frontend, FastAPI backend
-- 🧪 Token-based chunking for LLM precision
-- 💬 Downloadable chat history
-- 🧰 Tools for reset, undo, clear
-- 🌐 Fully API-driven interaction
-
----
-
-<details>
-  <summary>🛠️ Tech Stack</summary>
-
-- **Frontend**: Streamlit
-- **Backend**: FastAPI
-- **LLMs**: Groq & Gemini via LangChain
-- **Vector DB**: ChromaDB
-- **Embeddings**: HuggingFace & Google GenAI
-- **Chunking**: TokenTextSplitter (was RecursiveCharacterTextSplitter)
-- **Parsing**: PyPDF
-- **Orchestration**: LangChain Retrieval Chain
-
-</details>
-
----
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/Zlash65/rag-bot-fastapi.git
-cd rag-bot-fastapi
+```text
+用户上传 PDF
+-> FastAPI 接收文件
+-> 文档解析并抽取文本
+-> TokenTextSplitter 切割文本
+-> Embedding 模型向量化 chunk
+-> 写入 ChromaDB 向量库
+-> 用户提出问题
+-> 系统执行相似度检索并召回 Top-K chunk
+-> 将检索证据传入 LLM
+-> 返回带上下文依据的答案
+-> Streamlit 前端展示问答和检索信息
 ```
 
-Setup Virtual Environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate
+## 技术栈
+
+- 前端：Streamlit
+- 后端：FastAPI
+- 文档处理：PyPDF
+- 文本切割：TokenTextSplitter
+- 向量库：ChromaDB
+- Embedding：HuggingFace / Google GenAI
+- LLM：Groq / Gemini
+- 编排：LangChain
+
+## 目录结构
+
+```text
+企业知识库智能问答系统/
+├── client/              # Streamlit 前端
+├── server/              # FastAPI 后端
+├── assets/              # 架构图和演示图
+├── UPGRADE_NOTES.md     # 改进记录
+├── 部署说明.md          # 跨设备运行说明
+└── README.md
 ```
 
-Install frontend:
+## 安装依赖
 
-```bash
-cd client
-pip3 install -r requirements.txt
+后端：
+
+```powershell
+cd 求职项目\企业知识库智能问答系统\server
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Install backend:
+前端：
 
-```bash
-cd ../server
-pip3 install -r requirements.txt
+```powershell
+cd 求职项目\企业知识库智能问答系统\client
+pip install -r requirements.txt
 ```
 
----
+## 环境变量
 
-## 🔐 API Keys Required
-
-- **Groq API key** from [console.groq.com](https://console.groq.com/)
-- **Google Gemini API key** from [ai.google.dev](https://ai.google.dev/)
-
-Create a `.env` file:
+在 `server` 目录下创建 `.env`，填写本地 API Key：
 
 ```env
 GROQ_API_KEY=your-groq-key
 GOOGLE_API_KEY=your-google-key
 ```
 
----
+## 启动方式
 
-## ▶️ Run the Bot
+启动后端：
 
-Start FastAPI backend:
-
-```bash
-# Terminal 1
-cd server
+```powershell
+cd 求职项目\企业知识库智能问答系统\server
 uvicorn main:app --reload
 ```
 
-Start Streamlit frontend:
+启动前端：
 
-```bash
-# Terminal 2
-cd client
+```powershell
+cd 求职项目\企业知识库智能问答系统\client
 streamlit run app.py
 ```
 
----
+## 主要功能
 
-<details>
-  <summary>📁 Project Structure</summary>
+- 多 PDF 上传与解析
+- 文本切割和 chunk 管理
+- Embedding 向量化
+- ChromaDB 本地向量库
+- Top-K 相似度检索
+- Groq / Gemini 模型切换
+- 检索结果检查
+- 聊天历史导出
 
-```bash
-rag-bot-v3/
-├── client/                         # Streamlit Frontend
-│   ├── app.py                      # Main Streamlit entrypoint
-│   ├── components/                 # UI modules
-│   │   ├── chat.py
-│   │   ├── inspector.py
-│   │   └── sidebar.py
-│   ├── state/
-│   │   └── session.py              # Session state manager
-│   ├── utils/
-│   │   ├── api.py                  # Talks to backend
-│   │   ├── config.py               # API_URL and config values
-│   │   └── helpers.py              # API wrappers for frontend
-│   ├── requirements.txt
-│   └── README.md
+## 面试讲解重点
 
-├── server/                         # FastAPI Backend
-│   ├── api/
-│   │   ├── routes.py               # API endpoints
-│   │   └── schemas.py              # Pydantic schemas for I/O
-│   ├── core/
-│   │   ├── document_processor.py   # Handles PDF validation and chunking
-│   │   ├── llm_chain_factory.py    # Builds LLM chains and prompts
-│   │   └── vector_database.py      # Embeddings + ChromaDB ops
-│   ├── config/
-│   │   └── settings.py             # App config, model provider setup
-│   ├── utils/
-│   │   └── logger.py               # Logging setup
-│   ├── main.py                     # FastAPI app entrypoint
-│   ├── requirements.txt
-│   └── README.md
-
-├── README.md                       # Root README (overview + instructions)
-├── .gitignore
-```
-
-</details>
-
----
-
-<details>
-  <summary> 👓 Different Views </summary>
-
-| View | Description |
-|------|-------------|
-| 💬 Chat | Renders chat bubbles, input box, and chat history download |
-| 🔬 Inspector | Renders inspector to test vectorstore responses |
-
-![views](/assets/rag-bot-fastapi-clean-ui-ux.gif)
-
-</details>
-
----
-
-<details>
-  <summary>🧼 Tools Panel</summary>
-
-| Button | Function |
-|----------|--------|
-| 🔄 Reset | Clears session state and reruns app |
-| 🧹 Clear Chat | Clears chat + PDF submission |
-| ↩️ Undo | Removes last question/response |
-
-</details>
-
----
-
-<details>
-  <summary>📦 Download Chat History</summary>
-
-Chat history is saved in the session state and can be exported as a CSV with the following columns:
-
-| Question | Answer | Model Provider | Model Name | PDF File | Timestamp |
-|----------|--------|----------------|------------|---------------------|-----------|
-| What is this PDF about? | This PDF explains... | Groq | llama3-70b-8192 | file1.pdf, file2.pdf | 2025-07-03 21:00:00 |
-
-</details>
-
----
-
-<details>
-  <summary>🙏 Acknowledgements</summary>
-
-- [LangChain](https://www.langchain.com/)
-- [Streamlit](https://streamlit.io/)
-- [Groq](https://console.groq.com/)
-- [Google Gemini](https://ai.google.dev/)
-- [Chroma](https://docs.trychroma.com/)
-
-</details>
-
----
-
-## 🧠 New to this Project?
-
-Start from the basics:
-👉 [Version 1 - rag-bot-basic](https://github.com/Zlash65/rag-bot-basic)
-
-Understand modular design:
-👉 [Version 2 - rag-bot-chroma](https://github.com/Zlash65/rag-bot-chroma)
-
-Then return here for real-world patterns.
-
----
-
-Happy building! 🛠️
+- 这是标准 RAG 流程：切割、向量化、入库、召回、生成。
+- 用户问题不会直接交给大模型，而是先从企业文档中找证据。
+- 前端只负责交互，后端集中处理文档、向量库和 LLM 调用。
+- 检索检查功能可以帮助解释模型回答来自哪些文档片段。
+- 新设备运行时需要重新上传文档生成向量库，真实密钥不会上传到 GitHub。
