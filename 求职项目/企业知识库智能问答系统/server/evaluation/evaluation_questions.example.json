@@ -1,0 +1,12 @@
+[
+  {
+    "question": "What is the document mainly about?",
+    "expected_sources": ["sample.pdf"],
+    "notes": "Replace sample.pdf with an uploaded file name."
+  },
+  {
+    "question": "List the key requirements mentioned in the policy.",
+    "expected_sources": ["policy.md"],
+    "notes": "Use file names that exist in your uploaded knowledge base."
+  }
+]

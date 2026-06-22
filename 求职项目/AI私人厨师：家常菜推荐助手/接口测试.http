@@ -1,0 +1,20 @@
+@baseUrl = http://127.0.0.1:8001
+@threadId = demo-thread-001
+
+### 流式聊天
+POST {{baseUrl}}/api/v1/chat/stream
+Content-Type: application/json
+
+{
+  "message": "我有鸡蛋、番茄和土豆，推荐一道适合新手的晚饭",
+  "thread_id": "{{threadId}}"
+}
+
+### 查看历史消息
+GET {{baseUrl}}/api/v1/chat/messages?thread_id={{threadId}}
+
+### 清空历史消息
+DELETE {{baseUrl}}/api/v1/chat/messages?thread_id={{threadId}}
+
+### 获取图片上传地址，需要先配置 OSS 环境变量
+GET {{baseUrl}}/api/v1/oss/presign?filename=test.png

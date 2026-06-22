@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+langchain-community
+langchain-classic
+langchain-groq
+langchain-google-genai
+chromadb
+sentence-transformers
+pypdf
+docx2txt
+rank-bm25
+python-dotenv
+python-multipart
+aiofiles
+tiktoken

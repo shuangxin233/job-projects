@@ -1,0 +1,16 @@
+tmp/
+.venv/
+venv/
+node_modules/
+.next/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+.env
+.env.local
+*.log
+chat_history.json
+OllamaSetup.exe
+求职项目/**/server/data/*_vector_store/
+求职项目/**/backend/data/knowledge/

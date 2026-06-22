@@ -1,0 +1,22 @@
+[
+  {
+    "topic": "AI coding tools competitive analysis",
+    "required_sections": [
+      "Executive Summary",
+      "Competitive Landscape",
+      "Risks And Opportunities",
+      "Conclusion And Recommendations"
+    ],
+    "minimum_citations": 2
+  },
+  {
+    "topic": "Battery swap market trend research",
+    "required_sections": [
+      "Industry Background",
+      "Market Size And Trends",
+      "Business Models",
+      "Risks And Opportunities"
+    ],
+    "minimum_citations": 2
+  }
+]
