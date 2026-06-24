@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from app.models.schemas import ChatHistoryResponse, ChatRequest
-from app.services.chat_store import JsonChatStore
-from app.services.ollama_client import OllamaUnavailable, stream_ollama_chat
-from app.services.recipe_engine import build_ollama_messages, chunk_text, fallback_recipe_answer
+from backend.models.schemas import ChatHistoryResponse, ChatRequest
+from backend.services.chat_store import JsonChatStore
+from backend.services.ollama_client import OllamaUnavailable, stream_ollama_chat
+from backend.services.recipe_engine import build_ollama_messages, chunk_text, fallback_recipe_answer
 
 
 router = APIRouter()

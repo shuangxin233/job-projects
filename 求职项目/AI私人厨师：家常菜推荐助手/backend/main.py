@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import chat, oss
-from app.common.logger import setup_logging
+from backend.api.v1 import chat, oss
+from backend.common.logger import setup_logging
 
 
 load_dotenv()
@@ -53,4 +53,4 @@ async def serve_frontend(path: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8001, reload=True)
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8001, reload=True)

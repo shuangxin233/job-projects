@@ -1,6 +1,6 @@
 import time
 
-from app.models.schemas import ChatMessage
+from backend.models.schemas import ChatMessage
 
 
 SYSTEM_PROMPT = """你是一个面向家庭做饭场景的 AI 私人厨师。

@@ -3,7 +3,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.models.schemas import ChatMessage, MessageRole
+from backend.models.schemas import ChatMessage, MessageRole
 
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
