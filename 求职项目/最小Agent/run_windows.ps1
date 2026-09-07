@@ -1,4 +1,4 @@
-param([string]$Session = 'window1', [string]$UserId = 'A', [string]$EnvFile = '')
+﻿param([string]$Session = 'window1', [string]$UserId = 'A', [string]$EnvFile = '')
 $ErrorActionPreference = 'Stop'
 $env:PYTHONUTF8 = '1'
 $env:AGENT_DATA_DIR = Join-Path ([Environment]::GetFolderPath('Desktop')) '项目制作过程\最小Agent运行数据'
@@ -11,6 +11,8 @@ if (-not $EnvFile) {
 Push-Location $PSScriptRoot
 try {
     python -m mini_agent --user $UserId --session $Session --env-file $EnvFile --trace
+    $agentExit = $LASTEXITCODE
 } finally {
     Pop-Location
 }
+exit $agentExit

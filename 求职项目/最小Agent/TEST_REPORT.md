@@ -53,6 +53,7 @@ python scripts/live_smoke.py --env-file "$HOME\Desktop\项目制作过程\最小
 
 - `python -m mini_agent --help` 正常显示参数。
 - 未配置密钥时，CLI 明确提示配置问题，不伪造模型回答。
+- Windows PowerShell 启动脚本已实际执行；中文配置路径正常，缺少密钥时返回退出码 1。
 - 最初 29 项测试曾发现 `message=null` 类型检查遗漏；修复后全部通过。加入 DeepSeek 请求参数验证后共有 30 项。
 - 搜索与天气为 mock 数据；calculator 和 todo 的测试实际运行 Python 工具函数。
 
