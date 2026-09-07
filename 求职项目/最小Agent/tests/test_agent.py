@@ -251,11 +251,21 @@ class HTTPTests(unittest.TestCase):
     def client(self):
         return ChatLLM("test-key-not-real", "https://example.invalid/v1", "test-model")
 
-    def test_default_provider_is_groq(self):
+    def test_default_provider_is_bigmodel(self):
         with patch.dict("os.environ", {"LLM_API_KEY": "test-key-not-real"}, clear=True):
             client = ChatLLM.from_env()
-        self.assertEqual(client.url, "https://api.groq.com/openai/v1/chat/completions")
-        self.assertEqual(client.model, "qwen/qwen3.8-27b")
+        self.assertEqual(client.url, "https://open.bigmodel.cn/api/paas/v4/chat/completions")
+        self.assertEqual(client.model, "glm-4.7-flash")
+
+    def test_bigmodel_free_model_request_parameters(self):
+        client = ChatLLM("test-key-not-real", "https://open.bigmodel.cn/api/paas/v4", "glm-4.7-flash")
+        with patch.object(client.opener, "open", return_value=io.BytesIO(json.dumps(reply()).encode())) as mocked:
+            client.complete([], [])
+        body = json.loads(mocked.call_args.args[0].data)
+        self.assertEqual(body["model"], "glm-4.7-flash")
+        self.assertEqual(body["thinking"], {"type": "disabled"})
+        self.assertEqual(body["max_tokens"], 1024)
+        self.assertNotIn("max_completion_tokens", body)
 
     def test_groq_qwen_limits_output_and_disables_reasoning(self):
         client = ChatLLM("test-key-not-real", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b")

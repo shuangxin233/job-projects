@@ -40,20 +40,24 @@ class ChatLLM:
         self.key, self.model, self.timeout = key, model, timeout
         self.is_deepseek = parsed.hostname == "api.deepseek.com"
         self.is_groq = parsed.hostname == "api.groq.com"
+        self.is_bigmodel = parsed.hostname == "open.bigmodel.cn"
         self.url = base_url.rstrip("/") + "/chat/completions"
         self.opener = request.build_opener(NoRedirect())
 
     @classmethod
     def from_env(cls):
         return cls(os.getenv("LLM_API_KEY", ""),
-                   os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
-                   os.getenv("LLM_MODEL", "qwen/qwen3.8-27b"))
+                   os.getenv("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
+                   os.getenv("LLM_MODEL", "glm-4.7-flash"))
 
     def complete(self, messages, tools):
         payload = {"model": self.model, "messages": messages,
                    "tools": tools, "tool_choice": "auto"}
         if self.is_deepseek:
             payload["thinking"] = {"type": "disabled"}
+        if self.is_bigmodel and self.model == "glm-4.7-flash":
+            payload["thinking"] = {"type": "disabled"}
+            payload["max_tokens"] = 1024
         if self.is_groq:
             payload["max_completion_tokens"] = 1024
             if self.model.startswith("qwen/"):

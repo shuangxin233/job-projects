@@ -4,7 +4,7 @@
 
 运行时通过真实的 **Chat Completions HTTP API** 调用模型，由模型基于工具的名称、描述和参数 Schema 决定直接回答还是调用工具。计算器和待办真实执行；搜索、天气明确使用 mock 数据。
 
-题目只要求真实 LLM API，没有指定服务商，也没有要求必须付费。本版默认接入 **Groq Free 套餐 + Qwen**，免费套餐有额度限制；实际免费联调仍需你自己的 Groq Key。申请方式见 [FREE_API_SETUP.md](FREE_API_SETUP.md)。
+题目只要求真实 LLM API，没有指定服务商，也没有要求必须付费。本版默认接入 **智谱免费模型 GLM-4.7-Flash**；实际免费联调仍需你自己的智谱 Key。申请方式见 [FREE_API_SETUP.md](FREE_API_SETUP.md)。
 
 ## 1. 先运行起来
 
@@ -17,15 +17,17 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-仅在第一次配置时复制，避免覆盖自己已有的配置。登录 [Groq 密钥页面](https://console.groq.com/keys)创建 API Key，保持 Free 套餐，不升级 Developer 付费套餐。在 `.env` 填写你自己的 Groq Key：
+仅在第一次配置时复制，避免覆盖自己已有的配置。登录[智谱开放平台](https://bigmodel.cn)，在控制台创建 API Key，使用免费 glm-4.7-flash，无需购买 Coding Plan。在 `.env` 填写你自己的智谱 Key：
 
 ```dotenv
-LLM_API_KEY=填入你自己的Groq密钥
-LLM_BASE_URL=https://api.groq.com/openai/v1
-LLM_MODEL=qwen/qwen3.8-27b
+LLM_API_KEY=填入你自己的智谱密钥
+LLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+LLM_MODEL=glm-4.7-flash
 ```
 
 也可接入支持 **Chat Completions 原生 function calling** 的 OpenAI 或其他兼容服务：修改 `LLM_BASE_URL` 和 `LLM_MODEL`。BASE_URL 填基础地址，不要包含 `/chat/completions`；模型需在你的 API 账号中可用。此项目不对接只支持 Responses API 的模型。环境变量优先于 `.env`，不支持 `.env` 变量插值。
+
+默认智谱模型 glm-4.7-flash 使用 `thinking.type=disabled` 和 `max_tokens=1024`，工具仍由本地 Python 执行。
 
 对官方 DeepSeek 地址，客户端显式设置 `thinking.type=disabled`，使用非深度思考模式，避免额外处理跨轮次 reasoning 字段。切换服务商时请使用支持普通 function calling 的模型。
 
@@ -209,7 +211,7 @@ python -m unittest discover -v
 
 测试使用 `ScriptedLLM` 固定模型输出，验证 Runtime 是否正确地执行、回填、隔离、压缩和停止；**这些测试不能证明真实模型一定会正确选择工具**。HTTP 测试验证请求与重试逻辑，但不访问服务商。
 
-真实 API 冒烟测试（需要密钥，会消耗平台额度；Groq Free 计划在免费额度内使用）：
+真实 API 冒烟测试（需要密钥，会消耗平台额度；当前选择智谱免费模型）：
 
 ```powershell
 python scripts/live_smoke.py

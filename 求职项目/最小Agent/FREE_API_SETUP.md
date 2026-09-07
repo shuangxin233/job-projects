@@ -1,40 +1,39 @@
 # 使用免费的真实 API
 
-面试题只要求“需要使用真实的 LLM API”，没有指定 DeepSeek、OpenAI 或付费服务。免费套餐下调用真实模型同样符合这一要求。项目里说的“兼容 OpenAI 格式”只是请求协议，不代表一定调用 OpenAI 的付费服务。
+题目只要求真实 LLM API，没有指定服务商或要求付费。兼容 OpenAI 格式只是请求协议，不代表必须购买 OpenAI API。
 
-## 当前默认方案：Groq Free + Qwen
+## 当前方案：智谱 GLM-4.7-Flash
 
-截至 2026-09-07，[Groq 官方免费限额页](https://console.groq.com/docs/rate-limits)列出 `qwen/qwen3.8-27b` 的 Free 配额：每分钟 30 次请求、每天 1,000 次请求、每分钟 8,000 tokens、每天 200,000 tokens。具体以你的账号 Limits 页面为准，平台可能调整。
+智谱在[官方模型概览](https://docs.bigmodel.cn/cn/guide/start/model-overview)中将 glm-4.7-flash 列为免费模型，[模型文档](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash)确认支持 Function Calling。核对日期：2026-09-07。模型名完整保留 -flash，程序不会自动切换付费模型。
 
-[模型文档](https://console.groq.com/docs/model/qwen/qwen3.8-27b)确认支持 Tool Use，适合让本项目把工具 Schema 交给模型，工具本身仍由本地 Python 执行。这个模型目前标记为 Preview，后续可用性可能变化。
+本机已能访问智谱官网（HTTP 200），不带密钥访问 API 地址返回 HTTP 401。仍需你自己的密钥验证账号权限和真实模型调用。
 
-这里使用普通模型 API，不使用 Groq Compound 或平台内置 Agent 来代替主循环。
+## 申请和配置
 
-## 你要做的操作
-
-1. 打开 [Groq API Keys 页面](https://console.groq.com/keys)，按页面提供的方式注册或登录。
-2. 保持 **Free** 套餐，创建一个 API Key；不要升级 Developer 付费套餐。官方说明升级付费套餐需要提供支付方式，见[计费说明](https://console.groq.com/docs/billing-faqs)。
-3. 用记事本打开本地 `.env`，或已为你准备好的桌面 `项目制作过程/最小Agent-API配置.env`。
-4. 只填写 `LLM_API_KEY=` 后的 Groq 密钥，保存。不要使用 DeepSeek 的密钥，不要发到聊天或 GitHub。
+1. 打开[智谱开放平台](https://bigmodel.cn)，按页面提供的方式注册或登录。
+2. 进入控制台的 API 密钥管理页面创建密钥。若平台提示实名认证，按平台要求自行完成。使用免费 glm-4.7-flash，无需购买 Coding Plan。
+3. 用记事本打开桌面 `项目制作过程/最小Agent-API配置.env`，只把智谱密钥填在 LLM_API_KEY= 后，保存。不要发到聊天或 GitHub，也不要使用其他平台密钥。
 
 ```dotenv
-LLM_API_KEY=你自己的Groq密钥
-LLM_BASE_URL=https://api.groq.com/openai/v1
-LLM_MODEL=qwen/qwen3.8-27b
+LLM_API_KEY=你自己的智谱密钥
+LLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+LLM_MODEL=glm-4.7-flash
 ```
 
-如果网页登录、地区可用性或验证码遇到问题，请说明具体提示。当前没有你的 Groq 密钥，因此尚不能确认这个账号和网络能成功调用该模型。
+模型名称、地址已准备好。换到其他电脑时，从 .env.example 复制出 .env，填写自己的密钥。
 
 ## 运行验证
 
-在项目目录执行：
+在项目目录运行：
 
 ```powershell
 python scripts/live_smoke.py --env-file "$HOME\Desktop\项目制作过程\最小Agent-API配置.env"
 ```
 
-一次用户问题可能需要多次 API 请求，8 个测试用例也可能消耗十几次或更多调用。免费套餐的每分钟 token 限额比单纯的请求次数更容易触发；出现 429 时等额度恢复，再使用新的测试会话重跑。
+一次问题可能触发多次模型请求。免费模型仍受平台限流和容量约束，以控制台显示为准。本项目单次输出最多 1,024 tokens，工具循环最多六次，重试等待最多 30 秒。出现限流请等待恢复；不会自动改用付费服务。
 
-客户端只使用你配置的服务，不会自动调用付费后备模型。每次输出最多 1,024 tokens；遇到重试等待超过 30 秒的情况会停止并提示。免费不是不限量，也不保证一直有空闲容量。
+主循环和工具仍由本地 Python 实现，没有用平台内置 Agent 代替。真实测试状态见 TEST_REPORT.md，不能把模拟 HTTP 测试当成模型已调用成功。
 
-在其他电脑上需要自己申请密钥。完整测试执行状态以 `TEST_REPORT.md` 为准，不把 HTTP 替身测试说成免费模型已经调用成功。
+## 为什么更换 Groq
+
+用户的 Groq 密钥页面显示 Forbidden，本机未认证请求也返回 403。仅凭错误不能确定具体是网络、权限还是地域原因。为继续免费方案，改用本机能访问官网的智谱；旧平台密钥没有转发到新平台。

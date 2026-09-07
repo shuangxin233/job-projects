@@ -2,7 +2,7 @@
 
 验证日期：2026-09-07。环境：Windows、Python 3.10.13。
 
-## 自动化测试：36 / 36 通过
+## 自动化测试：37 / 37 通过
 
 执行命令：
 
@@ -10,7 +10,7 @@
 python -m unittest discover -v
 ```
 
-最后一次功能验证输出：`Ran 36 tests in 1.967s`、`OK`。本报告不会把测试替身当作真实模型。
+最后一次功能验证输出：`Ran 37 tests in 2.386s`、`OK`。本报告不会把测试替身当作真实模型。
 
 | 范围 | 已通过的行为 |
 | --- | --- |
@@ -25,15 +25,19 @@ python -m unittest discover -v
 | DeepSeek 配置 | 官方地址显式关闭 thinking，其他服务不发送此专有参数 |
 | Trace | 工具参数、结果、耗时、run_id 正常记录和持久化 |
 | 余额不足 | 402 返回明确充值提示且不重试；真实冒烟脚本停止后续请求，记录未执行用例 |
-| 免费 API 配置 | 默认 Groq、Qwen 非思考参数、1,024 tokens 输出上限、遵守 Retry-After、较长限流停止 |
+| 免费 API 配置 | 智谱默认参数、可选 Groq、Qwen 非思考参数、1,024 tokens 输出上限、遵守 Retry-After、较长限流停止 |
 
 单元测试通过说明程序能按给定模型输出正确处理流程。真实模型的工具选择与回答质量需要下面的独立验证。
 
-## 当前方案：Groq 免费 API，待用户配置新密钥
+## 当前方案：智谱免费 API，待用户配置新密钥
+
+用户反馈 Groq 登录页显示 Forbidden。现已默认改用智谱免费 glm-4.7-flash，并新增请求参数测试，共 37 项测试通过。本机访问智谱官网返回 HTTP 200，未认证访问 API 地址返回 HTTP 401。**尚无用户的智谱 Key，未完成智谱真实模型功能验证。** 网络入口检查不等于模型调用成功。
+
+## 历史尝试：Groq 免费 API
 
 用户随后要求使用免费 API。已核对官方资料，将默认配置切换到 Groq Free 套餐的 `qwen/qwen3.8-27b`。本机配置已经准备好，旧 DeepSeek 密钥只做本地备份，没有转发到 Groq。免费方案的申请与额度说明见 [FREE_API_SETUP.md](FREE_API_SETUP.md)。
 
-当前尚无用户的 Groq Key，因此**尚未完成 Groq 真实模型功能验证**。36 项测试包含模拟 HTTP 响应的协议验证，不能替代真实免费模型调用。接下来应申请并填写 Groq Key，而不是继续为原 DeepSeek 方案充值。
+当前尚无用户的 Groq Key，因此**尚未完成 Groq 真实模型功能验证**。36 项测试包含模拟 HTTP 响应的协议验证，不能替代真实免费模型调用。随后用户反馈 Groq 登录页 Forbidden，因此已改用智谱方案。
 
 本机还尝试了不携带密钥的 Groq 模型列表请求，收到 HTTP 403。该结果不能证明携带有效密钥后一定可用，账号权限和当前网络访问仍需在配置密钥后验证。尚未发送用户对话或旧平台密钥到 Groq。
 
@@ -49,7 +53,7 @@ LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操�
 
 结果摘要见 [evidence/live_api_attempt.json](evidence/live_api_attempt.json)。本地完整 trace 留在 `.runtime/live/20260907T091002Z/report.json`，未上传本地配置或账户余额明细。
 
-因此这次历史测试没有通过真实 LLM 功能联调。它验证了接口能返回实际服务商错误，不能证明真实模型已经正确执行工具循环。现在请配置默认方案的 Groq Key 后运行：
+因此这次历史测试没有通过真实 LLM 功能联调。它验证了接口能返回实际服务商错误，不能证明真实模型已经正确执行工具循环。现在请配置默认方案的智谱 Key 后运行：
 
 ```powershell
 python scripts/live_smoke.py
@@ -71,4 +75,4 @@ python scripts/live_smoke.py --env-file "$HOME\Desktop\项目制作过程\最小
 - 最初 29 项测试曾发现 `message=null` 类型检查遗漏；修复后全部通过。加入 DeepSeek 请求参数验证后共有 30 项。
 - 搜索与天气为 mock 数据；calculator 和 todo 的测试实际运行 Python 工具函数。
 
-提交前最后一步：配置自己的 Groq Key，确认处于 Free 套餐且有可用额度，执行真实 API 测试并更新本报告。不要将 .env 或自己的聊天数据库上传。
+提交前最后一步：配置自己的智谱 Key，使用免费 glm-4.7-flash，执行真实 API 测试并更新本报告。不要将 .env 或自己的聊天数据库上传。
