@@ -22,6 +22,7 @@ class Agent:
         if not isinstance(text, str) or not text.strip() or len(text) > 2000:
             raise ValueError("输入必须是 1～2000 字符")
         run_id, trace = uuid.uuid4().hex, []
+        last_successful_call = None
         current = [{"role": "user", "content": text}]
         status, answer = "max_steps", "已达到最大循环次数，请缩小任务或继续追问。已完成的操作会保留。"
 
@@ -60,8 +61,12 @@ class Agent:
                     args = None
                     try:
                         args = json.loads(fn["arguments"])
+                        signature = (fn["name"], json.dumps(args, sort_keys=True))
+                        if signature == last_successful_call:
+                            raise ToolError("相同工具和参数已经成功执行，不再重复。请根据上一条成功结果回答，或使用不同工具/参数完成剩余任务。")
                         value = self.registry.execute(fn["name"], args, state)
                         result = {"ok": True, "data": value}
+                        last_successful_call = signature
                     except (json.JSONDecodeError, ToolError) as exc:
                         result = {"ok": False, "error": str(exc)[:300]}
                     except Exception as exc:

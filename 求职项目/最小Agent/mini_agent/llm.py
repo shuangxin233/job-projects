@@ -31,13 +31,16 @@ class NoRedirect(request.HTTPRedirectHandler):
 
 
 class ChatLLM:
-    def __init__(self, key, base_url, model, timeout=30):
+    def __init__(self, key, base_url, model, timeout=30, min_interval=0):
         if not key or not model:
             raise LLMError("请在本地 .env 填写 LLM_API_KEY 和 LLM_MODEL。")
         parsed = urlparse(base_url)
         if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.query:
             raise LLMError("LLM_BASE_URL 必须是无用户名、无查询参数的 HTTPS 地址。")
         self.key, self.model, self.timeout = key, model, timeout
+        if not 0 <= min_interval <= 30:
+            raise LLMError("LLM_MIN_INTERVAL_SECONDS 必须在 0～30 秒之间。")
+        self.min_interval, self.last_request = min_interval, None
         self.is_deepseek = parsed.hostname == "api.deepseek.com"
         self.is_groq = parsed.hostname == "api.groq.com"
         self.is_bigmodel = parsed.hostname == "open.bigmodel.cn"
@@ -48,16 +51,18 @@ class ChatLLM:
     def from_env(cls):
         return cls(os.getenv("LLM_API_KEY", ""),
                    os.getenv("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
-                   os.getenv("LLM_MODEL", "glm-4.7-flash"))
+                   os.getenv("LLM_MODEL", "glm-4-flash-250414"),
+                   min_interval=float(os.getenv("LLM_MIN_INTERVAL_SECONDS", "10")))
 
     def complete(self, messages, tools):
         payload = {"model": self.model, "messages": messages,
                    "tools": tools, "tool_choice": "auto"}
         if self.is_deepseek:
             payload["thinking"] = {"type": "disabled"}
-        if self.is_bigmodel and self.model == "glm-4.7-flash":
-            payload["thinking"] = {"type": "disabled"}
+        if self.is_bigmodel:
             payload["max_tokens"] = 1024
+            if self.model in ("glm-4.7-flash", "glm-4.6v-flash"):
+                payload["thinking"] = {"type": "disabled"}
         if self.is_groq:
             payload["max_completion_tokens"] = 1024
             if self.model.startswith("qwen/"):
@@ -67,6 +72,11 @@ class ChatLLM:
             "Authorization": "Bearer " + self.key, "Content-Type": "application/json"})
         # 只重试一次 HTTP 请求；不重放已经执行的工具。
         for attempt in range(2):
+            if self.last_request is not None:
+                delay = self.min_interval - (time.monotonic() - self.last_request)
+                if delay > 0:
+                    time.sleep(delay)
+            self.last_request = time.monotonic()
             try:
                 with self.opener.open(req, timeout=self.timeout) as response:
                     raw = response.read(1_000_001)
@@ -74,9 +84,20 @@ class ChatLLM:
                     raise LLMError("LLM 响应过大。")
                 return json.loads(raw)
             except error.HTTPError as exc:
+                provider_code = ""
+                if self.is_bigmodel:
+                    try:
+                        code = str(json.loads(exc.read(8192)).get("error", {}).get("code", ""))
+                        if code.isdigit() and len(code) <= 6:
+                            provider_code = code
+                    except (ValueError, AttributeError, TypeError, UnicodeError):
+                        pass
+                # 只提取业务码，不输出厂商正文或隐藏推理。
+                if provider_code == "1113":
+                    raise LLMError("智谱业务码 1113：账户欠费，免费模型可用性也需在平台检查。") from None
                 if exc.code in (429, 500, 502, 503, 504) and attempt == 0:
                     try:
-                        delay = float(exc.headers.get("retry-after", "1"))
+                        delay = float(exc.headers.get("retry-after", "30" if provider_code == "1305" else "1"))
                     except (ValueError, TypeError):
                         delay = 1
                     if not 0 <= delay <= 30:
@@ -87,7 +108,8 @@ class ChatLLM:
                 if exc.code == 402:
                     raise LLMError("LLM HTTP 402：API 账户余额不足，请在服务商开放平台充值后重试。") from None
                 if exc.code == 429:
-                    raise LLMError("LLM HTTP 429：调用频率或额度达到上限，请等待额度恢复后重试。") from None
+                    detail = f"（业务码 {provider_code}）" if provider_code else ""
+                    raise LLMError("LLM HTTP 429" + detail + "：调用频率、额度或服务容量受限，请稍后重试。") from None
                 raise LLMError(f"LLM HTTP {exc.code}：检查密钥、模型、余额或服务状态。") from None
             except (error.URLError, TimeoutError, OSError):
                 if attempt == 0:

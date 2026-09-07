@@ -60,9 +60,12 @@ class AgentTests(unittest.TestCase):
         llm = ScriptedLLM(reply(calls=[call("calculator", {"expression": "(12+8)*3"})]), reply("60"))
         result = Agent(llm, self.store).chat("A", "w1", "计算 (12+8)*3")
         self.assertEqual(result["status"], "ok")
-        tool_message = llm.requests[1]["messages"][-1]
+        tool_message = next(m for m in llm.requests[1]["messages"] if m["role"] == "tool")
         self.assertEqual(tool_message["tool_call_id"], "call_1")
         self.assertEqual(json.loads(tool_message["content"])["data"]["value"], 60)
+        self.assertIn("(12+8)*3", llm.requests[1]["messages"][-1]["content"])
+        self.assertIn("calculator", llm.requests[1]["messages"][-1]["content"])
+        self.assertIn("尚未执行的操作继续调用工具", llm.requests[1]["messages"][-1]["content"])
         self.assertEqual(len(llm.requests[0]["tools"]), 4)
 
     def test_multi_step_weather_then_todo(self):
@@ -71,6 +74,18 @@ class AgentTests(unittest.TestCase):
         result = Agent(llm, self.store).chat("A", "w1", "查上海模拟天气并记待办")
         self.assertEqual([r["name"] for r in result["trace"] if r["event"] == "tool"], ["weather", "todo"])
         self.assertTrue(self.store.inspect("A", "w1")["state"]["last_tools"]["weather"]["data"]["mock"])
+
+    def test_repeated_successful_call_is_blocked_and_model_can_finish(self):
+        llm = ScriptedLLM(reply(calls=[call("todo", {"action": "list"}, "a")]),
+                          reply(calls=[call("todo", {"action": "list"}, "b")]), reply("待办为空"))
+        registry = build_registry()
+        with patch.object(registry, "execute", wraps=registry.execute) as execute:
+            result = Agent(llm, self.store, registry=registry).chat("A", "w1", "列出待办")
+        self.assertEqual(execute.call_count, 1)
+        rows = [row for row in result["trace"] if row["event"] == "tool"]
+        self.assertEqual([row["result"]["ok"] for row in rows], [True, False])
+        self.assertIn("不再重复", dumps(llm.requests[2]))
+        self.assertEqual(result["status"], "ok")
 
     def test_multiple_calls_have_matching_results(self):
         llm = ScriptedLLM(reply(calls=[call("weather", {"city": "北京"}, "a"),
@@ -121,7 +136,8 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(len(llm.requests), 2)
         followup = ScriptedLLM(reply("2"))
         Agent(followup, self.store).chat("A", "w1", "上次算出多少")
-        self.assertEqual(followup.requests[0]["messages"][-2]["role"], "assistant")
+        self.assertEqual(followup.requests[0]["messages"][-3]["role"], "assistant")
+        self.assertIn("本会话记忆", followup.requests[0]["messages"][-2]["content"])
 
     def test_parse_error_can_recover(self):
         llm = ScriptedLLM({"choices": []}, reply("恢复成功"))
@@ -144,7 +160,7 @@ class AgentTests(unittest.TestCase):
         state = self.store.inspect("A", "w1")["state"]
         self.assertTrue(state["summary"])
         self.assertLessEqual(len(state["turns"]), 5)  # 4 个历史轮次 + 刚完成的轮次。
-        self.assertIn("写周报", llm.requests[0]["messages"][1]["content"])
+        self.assertIn("写周报", llm.requests[0]["messages"][-2]["content"])
         self.assertFalse(any(m["role"] == "tool" for m in llm.requests[0]["messages"]))
 
     def test_context_budget_stops_before_api(self):
@@ -192,6 +208,39 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(report["skipped_cases"], 7)
         self.assertFalse(report["passed"])
         self.assertEqual(len(llm.requests), 1)
+
+    def test_live_smoke_resume_keeps_passed_cases_and_failed_attempts(self):
+        from scripts import live_smoke
+        root = Path(self.temp.name)
+        source = root / '.runtime/live/previous/report.json'
+        source.parent.mkdir(parents=True)
+        first = {'session': 'w1', 'input': '你好，请叫我小林。', 'passed': True, 'status': 'ok'}
+        source.write_text(json.dumps({'kind': 'real_llm_api', 'model': 'test-model',
+                                     'endpoint': 'https://example.invalid/v1/chat/completions',
+                                     'time_utc': 'previous', 'cases': [first]}), encoding='utf-8')
+        llm = ScriptedLLM(LLMError('service busy'))
+        llm.model, llm.url = 'test-model', 'https://example.invalid/v1/chat/completions'
+        with patch.object(live_smoke, 'ROOT', root), \
+                patch.object(live_smoke.ChatLLM, 'from_env', return_value=llm), \
+                patch('sys.argv', ['live_smoke.py', '--resume-report', str(source)]), \
+                patch('sys.stdout', new_callable=io.StringIO):
+            self.assertEqual(live_smoke.main(), 1)
+        report = json.loads(source.read_text(encoding='utf-8'))
+        self.assertEqual(report['cases'][0], first)
+        self.assertEqual(len(llm.requests), 1)
+        self.assertIn('(12+8)*3', llm.requests[0]['messages'][-1]['content'])
+        self.assertEqual(len(report['attempts']), 2)
+        self.assertEqual(report['resume_count'], 1)
+
+    def test_live_smoke_rejects_resume_outside_runtime(self):
+        from scripts import live_smoke
+        llm = ScriptedLLM()
+        llm.model, llm.url = 'test-model', 'https://example.invalid/v1/chat/completions'
+        with patch.object(live_smoke, 'ROOT', Path(self.temp.name)), \
+                patch.object(live_smoke.ChatLLM, 'from_env', return_value=llm), \
+                patch('sys.argv', ['live_smoke.py', '--resume-report', str(Path(self.temp.name) / 'outside.json')]):
+            with self.assertRaises(LLMError):
+                live_smoke.main()
 
 
 class ToolAndParserTests(unittest.TestCase):
@@ -251,21 +300,62 @@ class HTTPTests(unittest.TestCase):
     def client(self):
         return ChatLLM("test-key-not-real", "https://example.invalid/v1", "test-model")
 
+    @patch("mini_agent.llm.time.sleep")
+    @patch("mini_agent.llm.time.monotonic", side_effect=[100, 103, 110])
+    def test_request_spacing(self, monotonic, sleep):
+        client = ChatLLM("test-key-not-real", "https://example.invalid/v1", "test-model", min_interval=10)
+        responses = [io.BytesIO(json.dumps(reply()).encode()), io.BytesIO(json.dumps(reply()).encode())]
+        with patch.object(client.opener, "open", side_effect=responses):
+            client.complete([], [])
+            client.complete([], [])
+        sleep.assert_called_once_with(7)
+
+    def test_invalid_spacing_rejected(self):
+        for value in (-1, 31, float('nan')):
+            with self.assertRaises(LLMError):
+                ChatLLM("test-key-not-real", "https://example.invalid/v1", "test-model", min_interval=value)
+
+    def test_bigmodel_balance_business_code_does_not_retry(self):
+        client = ChatLLM("test-key-not-real", "https://open.bigmodel.cn/api/paas/v4", "glm-4.7-flash")
+        body = io.BytesIO(b'{"error":{"code":"1113","message":"private body"}}')
+        err = HTTPError(client.url, 429, "error", {}, body)
+        with patch.object(client.opener, "open", side_effect=err) as mocked:
+            with self.assertRaises(LLMError) as raised:
+                client.complete([], [])
+        self.assertIn('1113', str(raised.exception))
+        self.assertNotIn('private body', str(raised.exception))
+        self.assertEqual(mocked.call_count, 1)
+
+    @patch('mini_agent.llm.time.sleep')
+    def test_bigmodel_busy_code_waits_before_single_retry(self, sleep):
+        client = ChatLLM('test-key-not-real', 'https://open.bigmodel.cn/api/paas/v4', 'glm-4.7-flash')
+        body = io.BytesIO(b'{"error":{"code":"1305","message":"private body"}}')
+        err = HTTPError(client.url, 429, 'error', {}, body)
+        with patch.object(client.opener, 'open', side_effect=[err, io.BytesIO(json.dumps(reply()).encode())]) as mocked:
+            client.complete([], [])
+        sleep.assert_called_once_with(30)
+        self.assertEqual(mocked.call_count, 2)
+
     def test_default_provider_is_bigmodel(self):
         with patch.dict("os.environ", {"LLM_API_KEY": "test-key-not-real"}, clear=True):
             client = ChatLLM.from_env()
         self.assertEqual(client.url, "https://open.bigmodel.cn/api/paas/v4/chat/completions")
-        self.assertEqual(client.model, "glm-4.7-flash")
+        self.assertEqual(client.model, "glm-4-flash-250414")
 
     def test_bigmodel_free_model_request_parameters(self):
-        client = ChatLLM("test-key-not-real", "https://open.bigmodel.cn/api/paas/v4", "glm-4.7-flash")
-        with patch.object(client.opener, "open", return_value=io.BytesIO(json.dumps(reply()).encode())) as mocked:
-            client.complete([], [])
-        body = json.loads(mocked.call_args.args[0].data)
-        self.assertEqual(body["model"], "glm-4.7-flash")
-        self.assertEqual(body["thinking"], {"type": "disabled"})
-        self.assertEqual(body["max_tokens"], 1024)
-        self.assertNotIn("max_completion_tokens", body)
+        for model in ("glm-4.7-flash", "glm-4.6v-flash", "glm-4-flash-250414"):
+            with self.subTest(model=model):
+                client = ChatLLM("test-key-not-real", "https://open.bigmodel.cn/api/paas/v4", model)
+                with patch.object(client.opener, "open", return_value=io.BytesIO(json.dumps(reply()).encode())) as mocked:
+                    client.complete([], [])
+                body = json.loads(mocked.call_args.args[0].data)
+                self.assertEqual(body["model"], model)
+                if model in ("glm-4.7-flash", "glm-4.6v-flash"):
+                    self.assertEqual(body["thinking"], {"type": "disabled"})
+                else:
+                    self.assertNotIn("thinking", body)
+                self.assertEqual(body["max_tokens"], 1024)
+                self.assertNotIn("max_completion_tokens", body)
 
     def test_groq_qwen_limits_output_and_disables_reasoning(self):
         client = ChatLLM("test-key-not-real", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b")
