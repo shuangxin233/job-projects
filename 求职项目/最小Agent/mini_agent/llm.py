@@ -39,20 +39,25 @@ class ChatLLM:
             raise LLMError("LLM_BASE_URL 必须是无用户名、无查询参数的 HTTPS 地址。")
         self.key, self.model, self.timeout = key, model, timeout
         self.is_deepseek = parsed.hostname == "api.deepseek.com"
+        self.is_groq = parsed.hostname == "api.groq.com"
         self.url = base_url.rstrip("/") + "/chat/completions"
         self.opener = request.build_opener(NoRedirect())
 
     @classmethod
     def from_env(cls):
         return cls(os.getenv("LLM_API_KEY", ""),
-                   os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
-                   os.getenv("LLM_MODEL", "deepseek-v4-flash"))
+                   os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
+                   os.getenv("LLM_MODEL", "qwen/qwen3.8-27b"))
 
     def complete(self, messages, tools):
         payload = {"model": self.model, "messages": messages,
                    "tools": tools, "tool_choice": "auto"}
         if self.is_deepseek:
             payload["thinking"] = {"type": "disabled"}
+        if self.is_groq:
+            payload["max_completion_tokens"] = 1024
+            if self.model.startswith("qwen/"):
+                payload["reasoning_effort"] = "none"
         body = json.dumps(payload).encode("utf-8")
         req = request.Request(self.url, data=body, headers={
             "Authorization": "Bearer " + self.key, "Content-Type": "application/json"})
@@ -66,11 +71,19 @@ class ChatLLM:
                 return json.loads(raw)
             except error.HTTPError as exc:
                 if exc.code in (429, 500, 502, 503, 504) and attempt == 0:
-                    time.sleep(1)
+                    try:
+                        delay = float(exc.headers.get("retry-after", "1"))
+                    except (ValueError, TypeError):
+                        delay = 1
+                    if not 0 <= delay <= 30:
+                        raise LLMError("API 要求较长等待，请稍后重试；不会自动升级或切换付费服务。") from None
+                    time.sleep(delay)
                     continue
                 # 不输出服务商原始响应，避免把密钥或请求内容带入日志。
                 if exc.code == 402:
                     raise LLMError("LLM HTTP 402：API 账户余额不足，请在服务商开放平台充值后重试。") from None
+                if exc.code == 429:
+                    raise LLMError("LLM HTTP 429：调用频率或额度达到上限，请等待额度恢复后重试。") from None
                 raise LLMError(f"LLM HTTP {exc.code}：检查密钥、模型、余额或服务状态。") from None
             except (error.URLError, TimeoutError, OSError):
                 if attempt == 0:

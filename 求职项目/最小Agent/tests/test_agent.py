@@ -251,6 +251,39 @@ class HTTPTests(unittest.TestCase):
     def client(self):
         return ChatLLM("test-key-not-real", "https://example.invalid/v1", "test-model")
 
+    def test_default_provider_is_groq(self):
+        with patch.dict("os.environ", {"LLM_API_KEY": "test-key-not-real"}, clear=True):
+            client = ChatLLM.from_env()
+        self.assertEqual(client.url, "https://api.groq.com/openai/v1/chat/completions")
+        self.assertEqual(client.model, "qwen/qwen3.8-27b")
+
+    def test_groq_qwen_limits_output_and_disables_reasoning(self):
+        client = ChatLLM("test-key-not-real", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b")
+        with patch.object(client.opener, "open", return_value=io.BytesIO(json.dumps(reply()).encode())) as mocked:
+            client.complete([], [])
+        body = json.loads(mocked.call_args.args[0].data)
+        self.assertEqual(body["max_completion_tokens"], 1024)
+        self.assertEqual(body["reasoning_effort"], "none")
+        self.assertNotIn("thinking", body)
+
+    @patch("mini_agent.llm.time.sleep")
+    def test_rate_limit_honors_retry_after(self, sleep):
+        client = self.client()
+        err = HTTPError(client.url, 429, "limited", {"retry-after": "12"}, None)
+        with patch.object(client.opener, "open", side_effect=[err, io.BytesIO(json.dumps(reply()).encode())]):
+            client.complete([], [])
+        sleep.assert_called_once_with(12)
+
+    @patch("mini_agent.llm.time.sleep")
+    def test_long_rate_limit_wait_stops_without_retry_or_provider_switch(self, sleep):
+        client = self.client()
+        err = HTTPError(client.url, 429, "limited", {"retry-after": "90"}, None)
+        with patch.object(client.opener, "open", side_effect=err) as mocked:
+            with self.assertRaises(LLMError):
+                client.complete([], [])
+        self.assertEqual(mocked.call_count, 1)
+        sleep.assert_not_called()
+
     def test_http_request_contains_tools_and_auto_choice(self):
         client = self.client()
         with patch.object(client.opener, "open", return_value=io.BytesIO(json.dumps(reply()).encode())) as mocked:

@@ -4,6 +4,8 @@
 
 运行时通过真实的 **Chat Completions HTTP API** 调用模型，由模型基于工具的名称、描述和参数 Schema 决定直接回答还是调用工具。计算器和待办真实执行；搜索、天气明确使用 mock 数据。
 
+题目只要求真实 LLM API，没有指定服务商，也没有要求必须付费。本版默认接入 **Groq Free 套餐 + Qwen**，免费套餐有额度限制；实际免费联调仍需你自己的 Groq Key。申请方式见 [FREE_API_SETUP.md](FREE_API_SETUP.md)。
+
 ## 1. 先运行起来
 
 需要 Python **3.10 或以上**，只使用标准库，**不用 pip 安装任何包**。
@@ -15,17 +17,19 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-仅在第一次配置时复制，避免覆盖自己已有的配置。在 `.env` 填写你自己的真实 API Key：
+仅在第一次配置时复制，避免覆盖自己已有的配置。登录 [Groq 密钥页面](https://console.groq.com/keys)创建 API Key，保持 Free 套餐，不升级 Developer 付费套餐。在 `.env` 填写你自己的 Groq Key：
 
 ```dotenv
-LLM_API_KEY=填入你自己的密钥
-LLM_BASE_URL=https://api.deepseek.com
-LLM_MODEL=deepseek-v4-flash
+LLM_API_KEY=填入你自己的Groq密钥
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_MODEL=qwen/qwen3.8-27b
 ```
 
 也可接入支持 **Chat Completions 原生 function calling** 的 OpenAI 或其他兼容服务：修改 `LLM_BASE_URL` 和 `LLM_MODEL`。BASE_URL 填基础地址，不要包含 `/chat/completions`；模型需在你的 API 账号中可用。此项目不对接只支持 Responses API 的模型。环境变量优先于 `.env`，不支持 `.env` 变量插值。
 
 对官方 DeepSeek 地址，客户端显式设置 `thinking.type=disabled`，使用非深度思考模式，避免额外处理跨轮次 reasoning 字段。切换服务商时请使用支持普通 function calling 的模型。
+
+对 Groq 的 Qwen 模型显式设置 `reasoning_effort=none`，并将单次输出限制为 1,024 tokens，减少免费额度消耗。遇到限流时遵守 `Retry-After`，最多等待 30 秒且只重试一次；需要等待更久则提示稍后再试。不会自动切换付费服务。模型是否免费取决于你的 Groq 账号套餐，程序本身不能替你切换账号计费计划。
 
 ```powershell
 $env:PYTHONUTF8="1"
@@ -181,7 +185,7 @@ flowchart LR
 | 情况 | 处理 |
 | --- | --- |
 | 未配置 API Key | 直接说明如何配置，不使用假响应代替 |
-| 超时、网络失败、429、常见 5xx | HTTP 请求最多重试一次，30 秒超时；不重放本地工具 |
+| 超时、网络失败、429、常见 5xx | HTTP 请求最多重试一次，30 秒超时；重试等待最多 30 秒；不重放本地工具 |
 | 401、其他不可重试状态 | 返回清晰错误，不打印密钥或服务商响应正文 |
 | 402 余额不足 | 提示到服务商开放平台充值；真实冒烟测试停止后续用例并记录跳过数 |
 | 模型输出为空、结构不对、截断、重复调用 ID | 记录解析错误，提示修正，仍受最大轮次限制 |
@@ -205,7 +209,7 @@ python -m unittest discover -v
 
 测试使用 `ScriptedLLM` 固定模型输出，验证 Runtime 是否正确地执行、回填、隔离、压缩和停止；**这些测试不能证明真实模型一定会正确选择工具**。HTTP 测试验证请求与重试逻辑，但不访问服务商。
 
-真实 API 冒烟测试（需要密钥，会产生 API 请求费用）：
+真实 API 冒烟测试（需要密钥，会消耗平台额度；Groq Free 计划在免费额度内使用）：
 
 ```powershell
 python scripts/live_smoke.py
@@ -223,3 +227,5 @@ python scripts/live_smoke.py
 - `tests/`、`scripts/live_smoke.py`：可复现的测试代码。
 
 协议参考：[OpenAI 官方 Function calling 文档](https://developers.openai.com/api/docs/guides/function-calling)、[DeepSeek 官方工具调用文档](https://api-docs.deepseek.com/guides/function_calling)。本项目自行实现 HTTP 调用和循环，不使用 Agent SDK。
+
+免费方案参考：[Groq 免费限额](https://console.groq.com/docs/rate-limits)、[Groq 账号计费说明](https://console.groq.com/docs/billing-faqs)、[Qwen 模型工具调用与参数](https://console.groq.com/docs/model/qwen/qwen3.8-27b)。
