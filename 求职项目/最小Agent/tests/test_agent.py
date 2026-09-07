@@ -178,6 +178,21 @@ class AgentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 Agent(ScriptedLLM(), self.store).chat("A", "w1", value)
 
+    def test_live_smoke_stops_after_api_failure_and_marks_skipped(self):
+        from scripts import live_smoke
+        llm = ScriptedLLM(LLMError("LLM HTTP 402: insufficient balance"))
+        llm.model, llm.url = "test-model", "https://example.invalid/v1/chat/completions"
+        with patch.object(live_smoke, "ROOT", Path(self.temp.name)), \
+                patch.object(live_smoke.ChatLLM, "from_env", return_value=llm), \
+                patch("sys.argv", ["live_smoke.py"]), patch("sys.stdout", new_callable=io.StringIO):
+            self.assertEqual(live_smoke.main(), 1)
+        path = next(Path(self.temp.name).glob(".runtime/live/*/report.json"))
+        report = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(report["executed_cases"], 1)
+        self.assertEqual(report["skipped_cases"], 7)
+        self.assertFalse(report["passed"])
+        self.assertEqual(len(llm.requests), 1)
+
 
 class ToolAndParserTests(unittest.TestCase):
     def setUp(self):
@@ -272,6 +287,16 @@ class HTTPTests(unittest.TestCase):
                 client.complete([], [])
         self.assertEqual(mocked.call_count, 1)
         self.assertNotIn("test-key-not-real", str(raised.exception))
+
+    def test_402_explains_balance_problem_without_retry(self):
+        client = self.client()
+        err = HTTPError(client.url, 402, "private provider response", {}, None)
+        with patch.object(client.opener, "open", side_effect=err) as mocked:
+            with self.assertRaises(LLMError) as raised:
+                client.complete([], [])
+        self.assertEqual(mocked.call_count, 1)
+        self.assertIn("余额不足", str(raised.exception))
+        self.assertNotIn("private provider response", str(raised.exception))
 
     @patch("mini_agent.llm.time.sleep")
     def test_timeout_and_malformed_http_body(self, sleep):

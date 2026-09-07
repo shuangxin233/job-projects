@@ -69,6 +69,8 @@ class ChatLLM:
                     time.sleep(1)
                     continue
                 # 不输出服务商原始响应，避免把密钥或请求内容带入日志。
+                if exc.code == 402:
+                    raise LLMError("LLM HTTP 402：API 账户余额不足，请在服务商开放平台充值后重试。") from None
                 raise LLMError(f"LLM HTTP {exc.code}：检查密钥、模型、余额或服务状态。") from None
             except (error.URLError, TimeoutError, OSError):
                 if attempt == 0:

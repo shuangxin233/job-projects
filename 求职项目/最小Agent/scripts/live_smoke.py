@@ -51,12 +51,20 @@ def main():
         report["cases"].append({"session": session, "input": text, "passed": passed, **result})
         print(("PASS" if passed else "FAIL") + " " + text, flush=True)
         (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        if result["status"] == "llm_error":
+            report["aborted_reason"] = result["answer"]
+            print("API 请求失败，停止后续用例；请处理配置、余额或网络问题后重试。", flush=True)
+            break
     w1 = agent.store.inspect("smoke", "w1")["state"]["todos"]
     w2 = agent.store.inspect("smoke", "w2")["state"]["todos"]
     isolated = (len(w1) == 1 and w1[0]["text"] == "明天带伞" and w1[0]["done"]
                 and len(w2) == 1 and w2[0]["text"] == "周五写周报" and not w2[0]["done"])
     report["isolation_passed"] = isolated
-    report["passed"] = isolated and all(case["passed"] for case in report["cases"])
+    report["planned_cases"] = len(checks)
+    report["executed_cases"] = len(report["cases"])
+    report["skipped_cases"] = len(checks) - len(report["cases"])
+    report["passed"] = (isolated and not report["skipped_cases"]
+                        and all(case["passed"] for case in report["cases"]))
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print("Report: " + str(output / "report.json"))
     return 0 if report["passed"] else 1

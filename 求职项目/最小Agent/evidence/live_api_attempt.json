@@ -1,0 +1,68 @@
+{
+  "kind": "real_llm_api",
+  "model": "deepseek-v4-flash",
+  "endpoint": "https://api.deepseek.com/chat/completions",
+  "time_utc": "20260907T091002Z",
+  "passed": false,
+  "isolation_passed": false,
+  "cases": [
+    {
+      "session": "w1",
+      "input": "你好，请叫我小林。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w1",
+      "input": "请用计算器计算 (12+8)*3。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w1",
+      "input": "用计算器把刚才的计算结果除以4。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w1",
+      "input": "查上海的模拟天气，再添加一条待办：明天带伞。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w2",
+      "input": "搜索周报写法，给我三行周报模板，再添加待办：周五写周报。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w1",
+      "input": "把刚才带伞的待办标记完成，再列出我的待办。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w1",
+      "input": "我请你怎么称呼我？",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    },
+    {
+      "session": "w2",
+      "input": "列出我的待办。",
+      "passed": false,
+      "status": "llm_error",
+      "answer": "LLM HTTP 402：检查密钥、模型、余额或服务状态。 已完成的操作会保留。"
+    }
+  ],
+  "http_status": 402,
+  "note": "Actual provider rejection; no successful model answer. Source run predates fail-fast improvement."
+}
