@@ -6,13 +6,13 @@
 
 智谱在[官方模型概览](https://docs.bigmodel.cn/cn/guide/start/model-overview)中将 glm-4-flash-250414 列为免费模型，[模型文档](https://docs.bigmodel.cn/cn/guide/models/free/glm-4-flash-250414)确认支持 Function Calling。核对日期：2026-09-07。模型名完整使用 glm-4-flash-250414，程序不会自动切换付费模型。
 
-本机已配置智谱 Key 并完成 8 项真实 API 测试，全部通过。换到其他电脑需申请自己的密钥，详见 TEST_REPORT.md。
+作者在 2026-09-07 配置自己的智谱 Key 并完成 8 项真实 API 测试。运行者需配置自己的密钥，详细步骤见 [解压运行指南](QUICKSTART.md)，历史结果见 TEST_REPORT.md。
 
 ## 申请和配置
 
 1. 打开[智谱开放平台](https://bigmodel.cn)，按页面提供的方式注册或登录。
 2. 进入控制台的 API 密钥管理页面创建密钥。若平台提示实名认证，按平台要求自行完成。使用免费 glm-4-flash-250414，无需购买 Coding Plan。
-3. 用记事本打开桌面 `项目制作过程/最小Agent-API配置.env`，只把智谱密钥填在 LLM_API_KEY= 后，保存。不要发到聊天或 GitHub，也不要使用其他平台密钥。
+3. 在解压后的项目目录，将 `.env.example` 复制为 `.env`，用文本编辑器把自己的智谱密钥填在 `LLM_API_KEY=` 后保存。已有 `.env` 时直接编辑，不要覆盖；不要误命名为 `.env.txt`。
 
 ```dotenv
 LLM_API_KEY=你自己的智谱密钥
@@ -27,7 +27,7 @@ LLM_MODEL=glm-4-flash-250414
 在项目目录运行：
 
 ```powershell
-python scripts/live_smoke.py --env-file "$HOME\Desktop\项目制作过程\最小Agent-API配置.env"
+python scripts/live_smoke.py
 ```
 
 一次问题可能触发多次模型请求。免费模型仍受平台限流和容量约束，以控制台显示为准。本项目单次输出最多 1,024 tokens，工具循环最多六次，重试等待最多 30 秒。出现限流请等待恢复；不会自动改用付费服务。

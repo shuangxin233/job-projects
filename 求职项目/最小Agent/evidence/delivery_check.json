@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-08",
+  "environment": "Windows, Python 3.10.13, isolated venv without pip or third-party packages",
+  "checks": {
+    "unit_tests": {
+      "exit_code": 0,
+      "passed": true
+    },
+    "cli_inspect_without_key": {
+      "exit_code": 0,
+      "passed": true
+    },
+    "cli_without_key": {
+      "exit_code": 1,
+      "passed": true
+    },
+    "launcher_without_key": {
+      "exit_code": 1,
+      "passed": true
+    },
+    "launcher_with_local_env": {
+      "exit_code": 0,
+      "passed": true
+    },
+    "live_api_from_extracted_archive": {
+      "exit_code": 0,
+      "passed": true,
+      "expected_calculation": 60
+    }
+  },
+  "unit_test_summary": [
+    "----------------------------------------------------------------------",
+    "Ran 44 tests in 2.094s",
+    "",
+    "OK"
+  ],
+  "real_api_output": "用户=reviewer | 会话=portable-calculation | /exit 退出 | /state 查看状态\nAgent：计算已经成功完成，表达式 (12+8)*3 的值为 60。\n  TRACE {\"time\":\"2026-09-08T07:36:11.222144+00:00\",\"run_id\":\"223afb1eb8904388a024e3b518c1340a\",\"user\":\"reviewer\",\"session\":\"portable-calculation\",\"step\":1,\"event\":\"decision\",\"reason\":\"\",\"tools\":[\"calculator\"]}\n  TRACE {\"time\":\"2026-09-08T07:36:11.222144+00:00\",\"run_id\":\"223afb1eb8904388a024e3b518c1340a\",\"user\":\"reviewer\",\"session\":\"portable-calculation\",\"step\":1,\"event\":\"tool\",\"call_id\":\"call_-7285639404587055184\",\"name\":\"calculator\",\"args\":{\"expression\":\"(12+8)*3\"},\"result\":{\"ok\":true,\"data\":{\"expression\":\"(12+8)*3\",\"value\":60}},\"duration_ms\":0.0}\n  TRACE {\"time\":\"2026-09-08T07:36:21.239220+00:00\",\"run_id\":\"223afb1eb8904388a024e3b518c1340a\",\"user\":\"reviewer\",\"session\":\"portable-calculation\",\"step\":2,\"event\":\"decision\",\"reason\":\"\",\"tools\":[]}\n  TRACE {\"time\":\"2026-09-08T07:36:21.239220+00:00\",\"run_id\":\"223afb1eb8904388a024e3b518c1340a\",\"user\":\"reviewer\",\"session\":\"portable-calculation\",\"step\":2,\"event\":\"finish\",\"status\":\"ok\"}\n"
+}

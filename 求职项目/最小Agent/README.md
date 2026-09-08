@@ -1,5 +1,7 @@
 # 最小 Agent：用 Python 从零实现工具循环
 
+2026-09-08 交付复验：压缩后解压至独立环境，44 项自动化测试及单条真实 API 工具调用通过。见 [交付验证报告](DELIVERY_CHECK.md)。
+
 一个用于面试演示、方便读懂的小项目。核心循环、工具注册、参数校验、会话持久化、上下文压缩和 trace 都是自己写的，**没有使用 LangGraph、OpenHands、OpenClaw 或其他 Agent 框架**。
 
 运行时通过真实的 **Chat Completions HTTP API** 调用模型，由模型基于工具的名称、描述和参数 Schema 决定直接回答还是调用工具。计算器和待办真实执行；搜索、天气明确使用 mock 数据。
@@ -9,6 +11,8 @@
 **验证结果：44 项自动化测试通过；8 项真实 API 场景通过，会话隔离检查通过。** 证据见 [TEST_REPORT.md](TEST_REPORT.md)。
 
 ## 1. 先运行起来
+
+**面试官在其他电脑上运行，请先阅读 [解压运行指南](QUICKSTART.md)**，包括 Python 安装、Windows/macOS/Linux 命令、密钥配置和常见问题。所有 Python 依赖均来自标准库，无需 pip 安装。
 
 需要 Python **3.10 或以上**，只使用标准库，**不用 pip 安装任何包**。
 
@@ -51,7 +55,7 @@ $env:AGENT_DATA_DIR = Join-Path ([Environment]::GetFolderPath('Desktop')) '项�
 python -m mini_agent --user A --session window1 --trace
 ```
 
-也可运行 `run_windows.ps1`：它自动设置上述数据目录；优先读取桌面 `项目制作过程/最小Agent-API配置.env`（如果存在），否则读取项目 `.env`。默认直接运行 Python 且不传数据目录时保存在本项目 `.runtime` 中。API Key 保存在本机配置文件，不会打包或上传 GitHub。
+也可运行 `run_windows.ps1`：默认读取脚本所在目录的 `.env`，数据和缓存保存在该目录的 `.runtime`；不依赖作者的桌面路径。可通过 `-EnvFile` 和 `-DataDir` 指定其他配置和数据目录。API Key 保存在本机配置文件，不纳入提交。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_windows.ps1 -Session window1
@@ -228,12 +232,11 @@ python scripts/live_smoke.py
 
 服务繁忙中断后，可以加 `--resume-report .runtime/live/<原时间>/report.json` 继续未通过用例。脚本恢复原会话，保留已通过用例，失败尝试保存在 `attempts`，不会把历史失败删除后宣称首次全部通过。模型和接口必须与原报告一致。
 
-## 7. 提交材料和讲解
+## 7. 提交材料
 
 - 本文件：运行方法、系统设计和 memory 说明。
 - [AI_PROMPTS.md](AI_PROMPTS.md)：AI 辅助开发指令记录及运行 Prompt 的说明。
 - [PROBLEM_SOLVING.md](PROBLEM_SOLVING.md)：问题、选择、修复和实际验证记录。
-- [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md)：面试时可以自己讲清楚的版本。
 - [TEST_REPORT.md](TEST_REPORT.md)：实际测试结果与真实 API 验证状态。
 - `tests/`、`scripts/live_smoke.py`：可复现的测试代码。
 
